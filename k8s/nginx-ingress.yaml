@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nginx
+  namespace: ingress-nginx
+  # or use benford NS to avoid benfords-law-service-external
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: 70161ee7-5089-439a-b2ae-ab667650830f.lb.civo.com
+      http:
+        paths:
+          - path: /benfords-law(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: benfords-law-service-external
+                port:
+                  number: 23000
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: benfords-law-service-external
+  namespace: ingress-nginx
+spec:
+  type: ExternalName
+  externalName: benfords-law-service.benford.svc.cluster.local
+  ports:
+    - port: 23000
+      targetPort: 3000

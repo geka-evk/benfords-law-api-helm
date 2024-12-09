@@ -1,0 +1,89 @@
+{{ $NAME := include "benfords-law-api.name" . }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $NAME }}-deployment
+  labels:
+    {{- include "benfords-law-api.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "benfords-law-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "benfords-law-api.labels" . | nindent 8 }}
+	{{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "benfords-law-api.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest"  }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.httpPort }}
+              protocol: TCP
+          env:
+            - name: HTTP_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $NAME }}-configmap
+                  key: HTTP_PORT
+            - name: RAPID_API_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $NAME }}-configmap
+                  key: RAPID_API_HOST
+            - name: RAPID_API_KEY
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $NAME }}-configmap
+                  key: RAPID_API_KEY
+          livenessProbe:
+            httpGet:
+              path: /api/health-check
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /api/health-check
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- with .Values.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

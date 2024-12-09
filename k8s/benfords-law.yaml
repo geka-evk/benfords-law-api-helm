@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: benford
+  labels:
+    name: benford
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: benfords-law-service
+  namespace: benford
+spec:
+  selector:
+    app: benfords-law
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: http
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: benfords-law
+  namespace: benford
+  labels:
+    app: benfords-law
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: benfords-law
+  template:
+    metadata:
+      name: benfords-law
+      labels:
+        app: benfords-law
+    spec:
+      containers:
+        - name: benfords-law
+          image: geka1302/infitx-benfords-law:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: HTTP_PORT
+              value: '3000'
+            - name: RAPID_API_KEY # move to secrets
+              value: 591f49042amshb08a4f7b9008d65p19ecf0jsn6ba82807956e
+            - name: RAPID_API_HOST
+              value: yh-finance.p.rapidapi.com
+      restartPolicy: Always
